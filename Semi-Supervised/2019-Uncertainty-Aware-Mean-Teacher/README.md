@@ -1,0 +1,1 @@
+[[1907.07034\] Uncertainty-aware Self-ensembling Model for Semi-supervised 3D Left Atrium Segmentation (arxiv.org)](https://arxiv.org/abs/1907.07034)

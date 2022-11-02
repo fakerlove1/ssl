@@ -1,0 +1,1 @@
+[[2112.04894\] Semi-Supervised Medical Image Segmentation via Cross Teaching between CNN and Transformer (arxiv.org)](https://arxiv.org/abs/2112.04894)

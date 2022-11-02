@@ -1,0 +1,12 @@
+data
+my-experiment
+test
+test/
+.idea/
+.git
+.git/
+*.pkl
+*.pth
+paper
+
+

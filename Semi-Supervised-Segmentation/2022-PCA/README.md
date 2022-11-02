@@ -1,0 +1,1 @@
+[[2207.11683\] PCA: Semi-supervised Segmentation with Patch Confidence Adversarial Training (arxiv.org)](https://arxiv.org/abs/2207.11683)
