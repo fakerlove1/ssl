@@ -1,0 +1,1 @@
+[[2211.01886\] Analysing the effectiveness of a generative model for semi-supervised medical image segmentation (arxiv.org)](https://arxiv.org/abs/2211.01886)

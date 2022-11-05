@@ -1,0 +1,1 @@
+[[2210.15075\] IDEAL: Improved DEnse locAL Contrastive Learning for Semi-Supervised Medical Image Segmentation (arxiv.org)](https://arxiv.org/abs/2210.15075)

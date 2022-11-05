@@ -1,0 +1,1 @@
+[[2202.00677\] An Embarrassingly Simple Consistency Regularization Method for Semi-Supervised Medical Image Segmentation (arxiv.org)](https://arxiv.org/abs/2202.00677)
