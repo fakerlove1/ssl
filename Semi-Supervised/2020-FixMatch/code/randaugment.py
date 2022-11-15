@@ -11,6 +11,7 @@ import PIL.ImageOps
 import PIL.ImageEnhance
 import PIL.ImageDraw
 from PIL import Image
+# from PIL import ImageTransform
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,7 @@ def ShearX(img, v, max_v, bias=0):
     if random.random() < 0.5:
         v = -v
     return img.transform(img.size, PIL.Image.AFFINE, (1, v, 0, 0, 1, 0))
+
 
 
 def ShearY(img, v, max_v, bias=0):

@@ -30,8 +30,8 @@ class CIFAR10(data.Dataset):
             puts it in root directory. If dataset is already downloaded, it is not
             downloaded again.
     """
-
-    #data_file = 'cifar10_zca/cifar10_gcn_zca_v2.npz'
+       
+    #data_file = 'cifar10_zca/cifar10_gcn_zca_v2.npz' 
     nclass = 10
     split_list = ['label', 'unlabel', 'valid', 'test']
 
@@ -58,14 +58,14 @@ class CIFAR10(data.Dataset):
 
         # now load the picked numpy arrays
         if self.split is 'label' or self.split is 'unlabel' or self.split is 'valid':
-
+            
             self.train_data = self.data['train_x'].astype(np.float32).transpose(0,3,1,2)
             #self.train_data = np.concatenate(self.train_data)
             self.train_labels = self.data['train_y'].astype(int)
             print(self.train_data.shape)
             print(self.train_labels.shape)
             if boundary is not 0:
-                bidx = 5000 * boundary
+                bidx = 5000 * boundary 
                 self.train_data = [self.train_data[bidx:],self.train_data[:bidx]]
                 self.train_data = np.concatenate(self.train_data)
                 self.train_labels = [self.train_labels[bidx:],self.train_labels[:bidx]]
@@ -110,7 +110,7 @@ class CIFAR10(data.Dataset):
                 #print(self.train_data[:1,:1,:5,:5])
                 #print(self.train_labels[:10])
                 print('Label: ',num_tr) #label
-
+            
                 #self.midx=0
                 #self.idx_offset = num_tr_ul - (num_tr_ul//num_tr) * num_tr
                 #print('Offset: :',self.idx_offset)
@@ -129,21 +129,21 @@ class CIFAR10(data.Dataset):
             elif self.split is 'valid':
                 self.valid_data = valid_data1
                 self.valid_labels = valid_labels1
-
+ 
                 self.valid_data = np.concatenate(self.valid_data)
                 self.valid_data = self.valid_data.reshape((len(valid_data1), 3, 32, 32))
                 self.valid_data = self.valid_data.transpose((0, 2, 3, 1))  # convert to HWC
-
+                
                 num_val = self.valid_data.shape[0]
                 print('Valid: ',num_val) #valid
                 #print(self.valid_data[:1,:1,:5,:5])
                 #print(self.valid_labels[:10])
-
+            
         elif self.split is 'test':
             #self.test_data = self.test_data.reshape((10000, 3, 32, 32))
             #self.test_data = self.test_data.transpose((0, 2, 3, 1))  # convert to HWC
-            self.test_data = self.data['test_x'].astype(np.float32)
-            self.test_labels = self.data['test_y'].astype(int)
+            self.test_data = self.data['test_x'].astype(np.float32) 
+            self.test_labels = self.data['test_y'].astype(int) 
 
     def __getitem__(self, index):
         """
@@ -188,7 +188,7 @@ class CIFAR10(data.Dataset):
 
             img1 = torch.from_numpy(img1)
             img1 = img1.permute(2,0,1)
-
+ 
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -287,9 +287,9 @@ if __name__ == '__main__':
 
     import torch.utils.data as data
     from math import ceil
-
+    
     batch_size = 230
-
+    
     labelset = CIFAR10('/tmp', split='label', download=True, transform=None, boundary=0)
     unlabelset = CIFAR10('/tmp', split='unlabel', download=True, transform=None, boundary=0)
 
@@ -309,17 +309,17 @@ if __name__ == '__main__':
             print('Batch size (unlabel): ', batch_size_unlabel)
             print('Iter/epoch (label): ', iter_label)
             print('Iter/epoch (unlabel): ', iter_unlabel)
-
+    
 
     label_loader = data.DataLoader(labelset, batch_size=batch_size_label, shuffle=True)
     label_iter = iter(label_loader)
 
     unlabel_loader = data.DataLoader(unlabelset, batch_size=batch_size_unlabel, shuffle=True)
     unlabel_iter = iter(unlabel_loader)
-
+    
     print(len(label_iter))
     print(len(unlabel_iter))
-
+    
 
 
 
