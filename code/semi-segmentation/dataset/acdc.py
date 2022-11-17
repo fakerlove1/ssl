@@ -1,5 +1,6 @@
 import os.path
 
+import cv2
 import torch
 import random
 import numpy as np
@@ -12,7 +13,7 @@ import albumentations as A
 from PIL import Image
 from albumentations.pytorch.transforms import ToTensorV2
 import matplotlib.pyplot as plt
-
+from skimage import io
 
 class ACDC(Dataset):
     def __init__(self, root=r"E:\note\ssl\data\ACDC", mode="train", transform=None):
@@ -101,19 +102,22 @@ colour_codes = np.array([
 ])
 
 
-def show(t):
+def show(im):
+    im=im.numpy().squeeze().astype(np.uint8)
     plt.figure()
-    plt.imshow(t.numpy().squeeze(), cmap="gray")
+    plt.imshow(im, cmap="gray")
     plt.show()
+    # cv2.imwrite("image.png",im)
+    Image.fromarray(im).save("image.png")
 
-
-def color(mask):
+def color(mask,path="label.jpg"):
     mask = mask.numpy()
     mask[mask == 255] = 0
     mask = colour_codes[mask]
     plt.figure()
     plt.imshow(mask)
     plt.show()
+    Image.fromarray(np.uint8(mask)).save(path)
 
 
 if __name__ == '__main__':

@@ -1,17 +1,12 @@
 import os.path
-
-import torch
-import random
 import numpy as np
-from glob import glob
-
-import torchvision.utils
 from torch.utils.data import Dataset, DataLoader
-import h5py
 import albumentations as A
 from PIL import Image
 from albumentations.pytorch.transforms import ToTensorV2
 import matplotlib.pyplot as plt
+from skimage import io
+
 
 class_name = ['background', 'aeroplane', 'bicycle', 'bird',
               'boat',
@@ -59,7 +54,7 @@ class VOC(Dataset):
         self.img_path = [os.path.join(root, "JPEGImages", item + ".jpg") for item in self.sample_list]
         self.mask_path = [os.path.join(root, "SegmentationClassAug", item + ".png") for item in self.sample_list]
 
-        print("mode-{} load-{}images".format(mode, len(self.sample_list)))
+        print("mode-{} load {} images".format(mode, len(self.sample_list)))
 
     def __len__(self):
         return len(self.sample_list)
@@ -86,8 +81,8 @@ def get_loader(root, label=1464, batch_size=4, crop_size=(512, 512)):
         ToTensorV2(),
     ])
     val_transform = A.Compose([
-        A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, p=1, mask_value=255),
-        A.RandomCrop(height=255, width=255),
+        A.PadIfNeeded(min_height=crop_size[0], min_width=crop_size[1], border_mode=0, value=0, p=1, mask_value=255),
+        A.RandomCrop(height=crop_size[0], width=crop_size[1]),
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ToTensorV2(),
     ])
@@ -102,13 +97,15 @@ def get_loader(root, label=1464, batch_size=4, crop_size=(512, 512)):
     return label_dataloader, unlabel_dataloader, test_dataloader
 
 
+
+
 def show(image):
     im=image.numpy().transpose((1, 2, 0))
+    print(im.shape)
     plt.figure()
-    plt.imshow()
+    plt.imshow(im)
     plt.show()
-    im = Image.fromarray(im)
-    im.save("image.jpg")
+    io.imsave("image.jpg",im)
 
 
 def show_label(label,path="label.jpg"):
@@ -116,9 +113,8 @@ def show_label(label,path="label.jpg"):
     plt.figure()
     plt.imshow(im)
     plt.show()
-    im=Image.fromarray(im)
-    im.save(path)
-    # plt.savefig("label.jpg", bbox_inches='tight')
+    Image.fromarray(np.uint8(im)).save(path)
+
 
 
 if __name__ == '__main__':
@@ -129,22 +125,22 @@ if __name__ == '__main__':
         print(image.shape)
         print(label.shape)
         print(np.unique(label.numpy()))
-        # show(image[0])
-        # show_label(label[0])
-        # break
+        show(image[0])
+        show_label(label[0])
+        break
 
     for image, label in unlabel_dataloader:
         print(image.shape)
         print(label.shape)
         print(np.unique(label.numpy()))
-        # show(image[0])
-        # show_label(label[0])
-        # break
+        show(image[0])
+        show_label(label[0])
+        break
 
     for image, label in test_dataloader:
         print(image.shape)
         print(label.shape)
         print(np.unique(label.numpy()))
-        # show(image[0])
-        # show_label(label[0])
-        # break
+        show(image[0])
+        show_label(label[0])
+        break
