@@ -99,31 +99,31 @@ for dir_path in tqdm(os.listdir(root)):
         name = "{}_frame_ED_01_{:02d}.png".format(dir_path, i + 1)
         imgpath = os.path.join(img_path, name)
         maskpath = os.path.join(mask_path, name)
-        # print(np.unique(np.array(label_ED[i])))
-        save_image(img_ED[i], imgpath)
-        save_image(label_ED[i], maskpath)
-        save_txt(name, os.path.join(to_path, "all.txt"))
+        print(np.unique(np.array(label_ED[i])))
+        # save_image(img_ED[i], imgpath)
+        # save_image(label_ED[i], maskpath)
+        # save_txt(name, os.path.join(to_path, "all.txt"))
 
     batch_size = img_ES.shape[0]
     for i in range(batch_size):
         name = "{}_frame_ES_02_{:02d}.png".format(dir_path, i + 1)
         imgpath = os.path.join(img_path, name)
         maskpath = os.path.join(mask_path, name)
-        # print(np.unique(np.array(label_ES[i])))
-        save_image(img_ES[i], imgpath)
-        save_image(label_ES[i], maskpath)
-        save_txt(name, os.path.join(to_path, "all.txt"))
+        print(np.unique(np.array(label_ES[i])))
+        # save_image(img_ES[i], imgpath)
+        # save_image(label_ES[i], maskpath)
+        # save_txt(name, os.path.join(to_path, "all.txt"))
 
 
-with open(os.path.join(to_path, "all.txt"), "r") as file:
-    all = np.array(file.readlines())
-    np.random.shuffle(all)
-    val = all[:int(len(all) * 0.2)]
-    print(len(val))
-    train = all[int(len(all) * 0.2):]
-
-with open(os.path.join(to_path, "train.txt"), "a+") as file:
-    file.writelines(train)
-
-with open(os.path.join(to_path, "val.txt"), "a+") as file:
-    file.writelines(val)
+# with open(os.path.join(to_path, "all.txt"), "r") as file:
+#     all = np.array(file.readlines())
+#     np.random.shuffle(all)
+#     val = all[:int(len(all) * 0.2)]
+#     print(len(val))
+#     train = all[int(len(all) * 0.2):]
+#
+# with open(os.path.join(to_path, "train.txt"), "a+") as file:
+#     file.writelines(train)
+#
+# with open(os.path.join(to_path, "val.txt"), "a+") as file:
+#     file.writelines(val)

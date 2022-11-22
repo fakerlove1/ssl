@@ -1,0 +1,1 @@
+[[2208.06449\] When CNN Meet with ViT: Towards Semi-Supervised Learning for Multi-Class Medical Image Semantic Segmentation (arxiv.org)](https://arxiv.org/abs/2208.06449)

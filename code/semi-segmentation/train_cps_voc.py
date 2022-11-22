@@ -5,14 +5,16 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from torch import optim
 import datetime
-
 from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler
 from tqdm import tqdm
 
+from model.segformer import SegFormer
 from model.deeplabv3plus import deeplabv3plus_resnet50, deeplabv3plus_mobilenet
 from dataset.voc import get_loader, show_label
 from utils.stream_metrics import StreamSegMetrics
+from model.bisenetv2 import BiSeNetV2
+import matplotlib.pyplot as plt
 
 
 def save(epoch, score, path):
@@ -31,17 +33,35 @@ def save(epoch, score, path):
         file.write(txt + "\n")
 
 
+def sigmoid_rampup(current, rampup_length):
+    """Exponential rampup from https://arxiv.org/abs/1610.02242"""
+    if rampup_length == 0:
+        return 1.0
+    else:
+        current = np.clip(current, 0.0, rampup_length)
+        phase = 1.0 - current / rampup_length
+        return float(np.exp(-5.0 * phase * phase))
+
+
+consistency = 1.5
+consistency_rampup = 100
+
+
+def get_current_consistency_weight(epoch):
+    # Consistency ramp-up from https://arxiv.org/abs/1610.02242
+    return consistency * sigmoid_rampup(epoch, consistency_rampup)
+
+
 def train(epoch, model1, optimizer_1, lr_scheduler_1, model2, optimizer_2, lr_scheduler_2, label_loader, unlabel_loader,
           device, criterion, cps_weight=1.5):
     model1.train()
     model2.train()
 
     label_iter = iter(label_loader)
-    unlabel_iter = iter(unlabel_loader)
-    len_iter = len(unlabel_iter)
+    len_iter = len(unlabel_loader)
     train_loss = 0
 
-    for i in range(len_iter):
+    for i, (img_unlabeled, target_no_label) in enumerate(tqdm(unlabel_loader)):
         optimizer_1.zero_grad()
         optimizer_2.zero_grad()
 
@@ -51,8 +71,8 @@ def train(epoch, model1, optimizer_1, lr_scheduler_1, model2, optimizer_2, lr_sc
         except StopIteration:
             label_iter = iter(label_loader)
             img_labeled, target_label, = next(label_iter)
-        # 加载无标签数据
-        img_unlabeled, target_no_label = next(unlabel_iter)
+
+        cps_weight = get_current_consistency_weight(epoch=epoch)
 
         ##############################################################################
         img_labeled = img_labeled.to(device).float()
@@ -68,18 +88,20 @@ def train(epoch, model1, optimizer_1, lr_scheduler_1, model2, optimizer_2, lr_sc
         pseudo_unlabeled_2 = model2(img_unlabeled)
 
         ##############################################################################
-        ### 计算 cps loss ###
-        pred_1 = torch.cat([pseudo_labeled_1, pseudo_unlabeled_1], dim=0)
-        pred_2 = torch.cat([pseudo_labeled_2, pseudo_unlabeled_2], dim=0)
-        _, max_1 = torch.max(pred_1, dim=1)
-        _, max_2 = torch.max(pred_2, dim=1)
-        max_1 = max_1.long()
-        max_2 = max_2.long()
-        cps_loss = cps_weight * (criterion(pred_1, max_2) + criterion(pred_2, max_1))
 
         ### 计算 有监督损失, standard cross entropy loss ###
         loss_1 = criterion(pseudo_labeled_1, target_label)
         loss_2 = criterion(pseudo_labeled_2, target_label)
+
+        ##############################################################################
+        ### 计算 cps loss ###
+        pred_1 = torch.cat([pseudo_labeled_1, pseudo_unlabeled_1], dim=0)
+        pred_2 = torch.cat([pseudo_labeled_2, pseudo_unlabeled_2], dim=0)
+        _, max_1 = torch.max(pred_1.detach(), dim=1)
+        _, max_2 = torch.max(pred_2.detach(), dim=1)
+        max_1 = max_1.long()
+        max_2 = max_2.long()
+        cps_loss = cps_weight * criterion(pred_1, max_2) + cps_weight * criterion(pred_2, max_1)
 
         loss = cps_loss + loss_1 + loss_2
         loss.backward()
@@ -95,17 +117,18 @@ def train(epoch, model1, optimizer_1, lr_scheduler_1, model2, optimizer_2, lr_sc
 
         if i % 500 == 0:
             print(
-                "Train Epoch: {} [{}/{} ({:.0f}%)]\t loss:{:.5f} \t lr1:{:.5f} \t lr2:{:.5f}".format(epoch + 1,
-                                                                                                     i,
-                                                                                                     len_iter,
-                                                                                                     100. * i / len_iter,
-                                                                                                     loss.item(),
-                                                                                                     lr1,
-                                                                                                     lr2))
+                "Train Epoch: {} [{}/{} ({:.0f}%)]\t loss:{:.5f} \t lr1:{:.5f} \t lr2:{:.5f} \t w:{:.5f}".format(
+                    epoch + 1,
+                    i,
+                    len_iter,
+                    100. * i / len_iter,
+                    loss.item(),
+                    lr1,
+                    lr2, cps_weight))
     return train_loss / len_iter
 
 
-def test(epoch, model, optimizer, device, test_loader, metrics):
+def test(epoch, model, optimizer, device, test_loader, metrics, save_path):
     model.eval()
     metrics.reset()
     print("test-epoch--", epoch)
@@ -125,11 +148,25 @@ def test(epoch, model, optimizer, device, test_loader, metrics):
             if idx == 0 and epoch % 5 == 0:
                 print("pred", np.unique(label_pred))
                 print("true", np.unique(label_true))
-                show_label(label_pred[0], "label_pred_epoch{}.jpg".format(epoch))
-                show_label(label_true[0], "label_true_epoch{}.jpg".format(epoch))
+                show_label(label_pred[0], os.path.join(save_path, "label_pred_epoch{}.jpg".format(epoch)))
+                show_label(label_true[0], os.path.join(save_path, "label_true_epoch{}.jpg".format(epoch)))
 
     score = metrics.get_results()
+
     return score
+
+
+def mk_path(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def draw(title, data, path):
+    fig = plt.figure()
+    plt.plot(range(len(data)), data, label='train', linestyle="-", color="red")
+    plt.title(title)
+    plt.show()
+    fig.savefig('{}'.format(path))
 
 
 def main():
@@ -137,10 +174,10 @@ def main():
     class arg:
         opt = 'sgd'
         lr = 0.01
-        weight_decay = 1e-4
+        weight_decay = 0.01
         momentum = 0.9
         #  训练的epoch
-        epochs = 200
+        epochs = 300
         sched = 'cosine'
         # sched = "step"
         decay_epochs = 2.4
@@ -158,26 +195,31 @@ def main():
     #   是否使用gpu
     num_classes = 21
     label = 1464  # 使用有标签的数量
-    batch_size = 2  #
+    batch_size = 4  #
     crop_size = (512, 512)  # 裁剪大小
     cuda = True
     ckpt1 = None  # 模型1 恢复地址。如果模型突然终断。可以重新 添加地址运行
     ckpt2 = None  # 模型2 恢复地址。如果模型突然终断。可以重新 添加地址运行
     start_epoch = 0
+
     if not cuda:
         device = torch.device("cpu")
     else:
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    path = r"E:\note\ssl\data\voc_aug_2\VOCdevkit\VOC2012"
+    # path = r"/root/autodl-tmp/my_voc/voc_aug_2/VOCdevkit/VOC2012"
+    path = r"/root/my_voc_2/voc_aug_2/VOCdevkit/VOC2012"
+    save_path = "checkpoint/11-22"
+    mk_path(save_path)
+
     label_loader, unlabel_loader, test_loader = get_loader(root=path, label=label, batch_size=batch_size,
                                                            crop_size=crop_size)
     metrics = StreamSegMetrics(num_classes)
     #  对于这两个网络，我们使用相同的结构，但是不同的初始化。
     #  对网络用PyTorch框架中的kaiming_normal进行两次随机初始化，而没有对初始化的分布做特定的约束。
     #  网络已经进行过初始化了
-    model1 = deeplabv3plus_resnet50(num_classes=21).to(device)
-    model2 = deeplabv3plus_resnet50(num_classes=21).to(device)
+    model1 = BiSeNetV2(n_classes=21).to(device)
+    model2 = BiSeNetV2(n_classes=21).to(device)
 
     #  定义两个优化器
     optimizer_1 = create_optimizer_v2(model1, **optimizer_kwargs(cfg=arg))
@@ -207,6 +249,9 @@ def main():
         lr_scheduler_2 = state_dict["scheduler"]
         best_miou = state_dict["best_miou"]
 
+    all_miou = []
+    all_acc = []
+
     for epoch in range(start_epoch, num_epochs):
         train(epoch=epoch,
               model1=model1, optimizer_1=optimizer_1, lr_scheduler_1=lr_scheduler_1,
@@ -215,16 +260,22 @@ def main():
               device=device, criterion=criterion)
 
         val_score = test(epoch=epoch, model=model1, optimizer=optimizer_1, device=device, test_loader=test_loader,
-                         metrics=metrics)
+                         metrics=metrics, save_path=save_path)
         print(metrics.to_str(val_score))
-        save(epoch, val_score, "model1.txt")
-        best_miou = update(val_score, epoch, model1, optimizer_1, lr_scheduler_1, best_miou, "best_model1.pth")
+        save(epoch, val_score, os.path.join(save_path, "model1.txt"))
+        best_miou = update(val_score, epoch, model1, optimizer_1, lr_scheduler_1, best_miou,
+                           os.path.join(save_path, "best_model1.pth"))
+        all_miou.append(val_score["Mean IoU"])
+        all_acc.append(val_score["Overall Acc"])
+        draw(title="epoch:{} Miou".format(epoch), data=all_miou, path=os.path.join(save_path, "miou.jpg"))
+        draw(title="epoch:{} Acc".format(epoch), data=all_acc, path=os.path.join(save_path, "acc.jpg"))
 
         val_score = test(epoch=epoch, model=model2, optimizer=optimizer_2,
-                         device=device, test_loader=test_loader, metrics=metrics)
+                         device=device, test_loader=test_loader, metrics=metrics, save_path=save_path)
         print(metrics.to_str(val_score))
-        save(epoch, val_score, "model2.txt")
-        best_miou = update(val_score, epoch, model1, optimizer_1, lr_scheduler_1, best_miou, "best_model2.pth")
+        save(epoch, val_score, os.path.join(save_path, "model2.txt"))
+        best_miou = update(val_score, epoch, model1, optimizer_1, lr_scheduler_1, best_miou,
+                           os.path.join(save_path, "best_model2.pth"))
 
 
 def update(val_score, epoch, model, optimizer, scheduler, best_miou, path):

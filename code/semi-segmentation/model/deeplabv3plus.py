@@ -345,7 +345,7 @@ def _segm_mobilenet(name, backbone_name, num_classes, output_stride, pretrained_
     else:
         aspp_dilate = [6, 12, 18]
 
-    backbone = mobilenet.mobilenet_v2(pretrained=pretrained_backbone, output_stride=output_stride)
+    backbone = mobilenet.mobilenet_v2(pretrained=pretrained_backbone)
 
     # rename layers
     backbone.low_level_features = backbone.features[0:4]
@@ -449,7 +449,7 @@ def deeplabv3_mobilenet(num_classes=21, output_stride=8, pretrained_backbone=Fal
 #                        pretrained_backbone=pretrained_backbone)
 
 
-def deeplabv3plus_resnet50(num_classes=21, output_stride=8, pretrained_backbone=False):
+def deeplabv3plus_resnet50(num_classes=21, output_stride=8, pretrained_backbone=True):
     """Constructs a DeepLabV3 model with a ResNet-50 backbone.
     Args:
         num_classes (int): number of classes.
@@ -460,7 +460,7 @@ def deeplabv3plus_resnet50(num_classes=21, output_stride=8, pretrained_backbone=
                        pretrained_backbone=pretrained_backbone)
 
 
-def deeplabv3plus_resnet101(num_classes=21, output_stride=8, pretrained_backbone=False):
+def deeplabv3plus_resnet101(num_classes=21, output_stride=8, pretrained_backbone=True):
     """Constructs a DeepLabV3+ model with a ResNet-101 backbone.
     Args:
         num_classes (int): number of classes.
@@ -471,7 +471,7 @@ def deeplabv3plus_resnet101(num_classes=21, output_stride=8, pretrained_backbone
                        pretrained_backbone=pretrained_backbone)
 
 
-def deeplabv3plus_mobilenet(num_classes=21, output_stride=8, pretrained_backbone=False):
+def deeplabv3plus_mobilenet(num_classes=21, output_stride=8, pretrained_backbone=True):
     """Constructs a DeepLabV3+ model with a MobileNetv2 backbone.
     Args:
         num_classes (int): number of classes.
@@ -494,7 +494,7 @@ def deeplabv3plus_mobilenet(num_classes=21, output_stride=8, pretrained_backbone
 
 if __name__ == '__main__':
     x=torch.randn(2,3,224,224)
-    model=deeplabv3_resnet50(num_classes=19)
+    model=deeplabv3plus_mobilenet(num_classes=19)
     # print(model.modules())
     # for m in model.modules():
     #     print(m)
@@ -506,5 +506,5 @@ if __name__ == '__main__':
         #     nn.init.constant_(m.bias, 0)
 
 
-    # y=model(x)
-    # print(y.shape)
+    y=model(x)
+    print(y.shape)

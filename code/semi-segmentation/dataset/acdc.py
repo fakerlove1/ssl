@@ -15,6 +15,7 @@ from albumentations.pytorch.transforms import ToTensorV2
 import matplotlib.pyplot as plt
 from skimage import io
 
+
 class ACDC(Dataset):
     def __init__(self, root=r"E:\note\ssl\data\ACDC", mode="train", transform=None):
         super(ACDC, self).__init__()
@@ -48,7 +49,7 @@ class ACDC(Dataset):
         return image, mask
 
 
-def get_loader(root=r'E:\note\ssl\data\My-ACDC', batch_size=4, label=0.2):
+def get_loader(root=r'../input/acdc-lung/My-ACDC', batch_size=4, crop_size=(256, 256), label=0.2):
     """
 
     :param root:
@@ -57,8 +58,8 @@ def get_loader(root=r'E:\note\ssl\data\My-ACDC', batch_size=4, label=0.2):
     :return:
     """
     train_both_aug = A.Compose([
-        A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, p=1, mask_value=255),
-        A.RandomCrop(height=256, width=256, p=1),
+        A.PadIfNeeded(min_height=crop_size[0], min_width=crop_size[1], border_mode=0, value=0, p=1, mask_value=255),
+        A.RandomCrop(height=crop_size[0], width=crop_size[1], p=1),
         A.Cutout(num_holes=8, p=0.5),
         A.OneOf([
             A.ShiftScaleRotate(p=0.6),
@@ -76,8 +77,8 @@ def get_loader(root=r'E:\note\ssl\data\My-ACDC', batch_size=4, label=0.2):
     ])
 
     val_both_aug = A.Compose([
-        A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, p=1, mask_value=255),
-        A.RandomCrop(height=256, width=256, p=1),
+        # A.PadIfNeeded(min_height=256, min_width=256, border_mode=0, value=0, p=1, mask_value=255),
+        # A.RandomCrop(height=256, width=256, p=1),
         ToTensorV2()
     ])
 
@@ -88,9 +89,10 @@ def get_loader(root=r'E:\note\ssl\data\My-ACDC', batch_size=4, label=0.2):
 
     test_dataset = ACDC(root=root, mode="test", transform=val_both_aug)
 
-    train_label_dataloader = DataLoader(train_label, batch_size=batch_size, shuffle=True, drop_last=True)
-    train_unlabel_dataloader = DataLoader(train_unlabel, batch_size=batch_size, shuffle=True, drop_last=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_label_dataloader = DataLoader(train_label, batch_size=batch_size, num_workers=4, shuffle=True, drop_last=True)
+    train_unlabel_dataloader = DataLoader(train_unlabel, batch_size=batch_size * 3, num_workers=4, shuffle=True,
+                                          drop_last=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=4, shuffle=False)
     return train_label_dataloader, train_unlabel_dataloader, test_dataloader
 
 
@@ -103,15 +105,14 @@ colour_codes = np.array([
 
 
 def show(im):
-    im=im.numpy().squeeze().astype(np.uint8)
+    im = im.numpy().squeeze().astype(np.uint8)
     plt.figure()
     plt.imshow(im, cmap="gray")
     plt.show()
-    # cv2.imwrite("image.png",im)
-    Image.fromarray(im).save("image.png")
+    Image.fromarray(np.uint8(im)).save("image.png")
 
-def color(mask,path="label.jpg"):
-    mask = mask.numpy()
+
+def show_label(mask, path="label.jpg"):
     mask[mask == 255] = 0
     mask = colour_codes[mask]
     plt.figure()
@@ -133,5 +134,5 @@ if __name__ == '__main__':
         print(label.shape)
         print(np.unique(label.numpy()))
         show(image[0])
-        color(label[0])
+        show_label(label[0].numpy())
         break
