@@ -95,10 +95,12 @@ def train(model, mean_teacher, device, label_loader, unlabel_loader, lr_schedule
         with torch.no_grad():
             mean_t_output = mean_teacher(input2)
 
+        student_output = F.softmax(output.detach(), dim=1)
+        teacher_output = F.softmax(mean_t_output.detach(), dim=1)
         ########################### CODE CHANGE HERE ######################################
         # consistency loss (example with MSE, you can change)
         # 一致性损失。损失为所有标签(无标签+有标签)
-        const_loss = F.mse_loss(output, mean_t_output)
+        const_loss = F.mse_loss(student_output, teacher_output)
 
         ########################### CODE CHANGE HERE ######################################
         # set the consistency weight (should schedule)

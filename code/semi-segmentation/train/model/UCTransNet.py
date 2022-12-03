@@ -519,7 +519,7 @@ class UCTransNet(nn.Module):
             return logits
 
 
-def get_model(n_channels=3, n_classes=1, img_size=224):
+def get_UCTransNet(n_channels=3, n_classes=1, img_size=224):
     config = edict()
     config.transformer = edict()
     config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
@@ -539,6 +539,6 @@ def get_model(n_channels=3, n_classes=1, img_size=224):
 if __name__ == '__main__':
     # https://github.com/McGregorWwww/UCTransNet
     x = torch.randn(1, 1, 256,256)
-    model = get_model(n_channels=1, n_classes=4, img_size=256)
+    model = get_UCTransNet(n_channels=1, n_classes=4, img_size=256)
     y = model(x)
     print(y.shape)

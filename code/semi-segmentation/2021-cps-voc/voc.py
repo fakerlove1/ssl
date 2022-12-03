@@ -89,14 +89,13 @@ def get_loader(root, label=1464, batch_size=4, crop_size=(512, 512)):
         # ToTensorV2(),
     ])
 
-
     label_dataset = VOC(root=root, mode="label", transform=train_transform, label=label)
     unlabel_dataset = VOC(root=root, mode="unlabel", transform=train_transform, label=label)
     test_dataset = VOC(root=root, mode="test", transform=None, label=label)
 
     label_dataloader = DataLoader(label_dataset, batch_size=batch_size, shuffle=True, num_workers=4,
                                   drop_last=True, pin_memory=True)
-    unlabel_dataloader = DataLoader(unlabel_dataset, batch_size=batch_size, shuffle=True, num_workers=4,
+    unlabel_dataloader = DataLoader(unlabel_dataset, batch_size=batch_size * 2, shuffle=True, num_workers=4,
                                     pin_memory=True,
                                     drop_last=True)
     test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=4, shuffle=False, pin_memory=True)
